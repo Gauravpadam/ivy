@@ -730,3 +730,53 @@ def test_paddle_moveaxis(
         destination=destination,
         on_device=on_device,
     )
+
+
+#Moveaxis helper function
+'''   * Why am I using a helper function to receive my dtypes?
+
+      # This generally depends on personal preference. I like a good separation between my driver codes and
+        my side operations. And this is exactly what the helper function is doing
+
+      # From Ivy docs, I have studied the way dtype helpers work.
+        My aim is to draw values of dtypes and axes in the helper and then return them to the original function
+        
+      * What does each term mean?
+        # dtypes: The datatypes according to which tensors and other values are generated
+        # x: x is our N-D tensor
+        # shape: shape determines the dimensions of our arrays & lists
+
+        (Again here, We can also use helpers.get_shape(), But I got some problems so I used an alternate st.lists())
+
+        # source: The source axis, can be achieved by using helper.get_axis() too and alternatively st.lists too
+        # destination: The destination axis, same configuration as source!
+
+      * Now the next major question, How did I determine the bounds & restrictions of drawing values?
+        # Everything is mentioned in the paddle.moveaxis documentation and the github repository, I refered to that and
+          experimented with different scenarios to arrive at the perfect results where my tests were passing
+
+          numpy does not accept bfloat16 for instance, we must avoid that as it will surely crash our tests later on.
+
+'''
+@st.composite # strategies decorator funcn
+def _moveaxis_helper(draw, **kwargs):
+    dtypes, x , shape = draw(helpers.dtype_and_values(**kwargs, ret_shape=True))
+
+    source = draw(
+        st.lists(
+            helpers.ints(min_value=0, max_value=len(shape) - 1), # Again this comes from the docs, Axis dimensions depends on the tensor you're drawing!
+            min_size=len(shape),
+            max_size=len(shape),
+            unique=True,
+        )
+    )
+    destination = draw(
+        st.lists(
+            helpers.ints(min_value=0, max_value=len(shape) - 1), # Same as above
+            min_size=len(shape),
+            max_size=len(shape),
+            unique=True,
+        )
+    )
+
+    return dtypes, x , source, destination
